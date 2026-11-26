@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Список базара</title>
+<meta name="theme-color" content="#137a7f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Базар">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: тёплый, домашний, быстрый — как записка на холодильнике
+   IDEA: бумажный список на базар, разложенный по рядам рынка
+   PICTURE: сам список — крупные строки с количеством, цветные метки отделов
+   COLOUR and TYPE: бирюза самаркандских куполов, тёплый белый, акцент гранатовый; Rubik
+   LAYOUT: одна колонка до 640px, вкладки сверху, главная кнопка снизу */
+:root{color-scheme:light dark;
+--bg:light-dark(#fbf8f2,#0f1b1d);--card:light-dark(#ffffff,#16272a);--ink:light-dark(#1c2426,#eef3f1);
+--mute:light-dark(#6b7476,#93a4a3);--line:light-dark(#e8e2d6,#263a3d);
+--tq:light-dark(#137a7f,#3fb6b4);--tq2:light-dark(#e3f2f1,#173638);--red:light-dark(#c2384b,#ff7a8a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Rubik,system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:640px;margin:0 auto;padding:16px max(4vw,14px) 120px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+h1{font-size:32px;line-height:1.05;margin:0;font-weight:700;text-wrap:balance}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--tq2);border-radius:14px;padding:4px;margin-bottom:16px}
+.tabs button{border:0;background:none;font:500 16px Rubik,sans-serif;color:var(--tq);min-height:44px;border-radius:11px;cursor:pointer;position:relative}
+.tabs button[aria-selected=true]{background:var(--tq);color:#fff}
+.badge{display:inline-block;min-width:20px;padding:0 6px;border-radius:10px;background:var(--red);color:#fff;font-size:13px;margin-left:6px;line-height:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.depts{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:0 14px;min-height:40px;font:15px Rubik,sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px}
+.chip i{width:10px;height:10px;border-radius:50%;display:block}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.add{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}
+input,select,textarea{font:16px Rubik,sans-serif;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;min-height:48px;padding:0 12px;width:100%}
+textarea{padding:10px 12px;min-height:64px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--tq);outline-offset:1px}
+.qty{display:flex;align-items:center;gap:6px;margin-top:8px}
+.qty input{width:84px;text-align:center}.qty select{width:auto}
+.step{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:22px;cursor:pointer;flex:none}
+.btn{border:0;border-radius:12px;min-height:48px;padding:0 18px;font:500 16px Rubik,sans-serif;cursor:pointer;background:var(--tq);color:#fff}
+.btn.ghost{background:var(--tq2);color:var(--tq)}
+.btn:disabled{opacity:.45;cursor:default}
+.sugg{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.sugg button{border:1px dashed var(--line);background:none;color:var(--ink);border-radius:10px;padding:6px 10px;font:14px Rubik,sans-serif;cursor:pointer;min-height:36px}
+.sugg button:active{background:var(--tq2)}
+.lbl{font-size:13px;color:var(--mute);margin:18px 2px 6px}
+.group{margin-top:14px}
+.gh{display:flex;align-items:center;gap:8px;font-weight:700;font-size:17px;margin:0 2px 6px}
+.gh i{width:12px;height:12px;border-radius:4px}
+.gh span{color:var(--mute);font-weight:400;font-size:14px;margin-left:auto}
+.row{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-left-width:5px;border-radius:12px;padding:8px 10px;margin-bottom:6px;min-height:56px}
+.row .nm{flex:1;font-size:17px;overflow-wrap:anywhere}
+.row .q{font-weight:700;white-space:nowrap;font-size:17px;font-variant-numeric:tabular-nums}
+.row .x{border:0;background:none;color:var(--mute);font-size:22px;width:40px;height:40px;cursor:pointer;flex:none}
+.row .mini{width:34px;height:34px;font-size:18px;border-radius:9px}
+.buy .row{cursor:pointer;user-select:none}
+.box{width:30px;height:30px;border-radius:9px;border:2px solid var(--tq);flex:none;display:grid;place-items:center}
+.done .box{background:var(--tq)}.done .box::after{content:"";width:12px;height:7px;border:3px solid #fff;border-top:0;border-right:0;transform:translateY(-2px) rotate(-45deg)}
+.done .nm,.done .q{text-decoration:line-through;color:var(--mute)}
+.dock{position:fixed;left:0;right:0;bottom:0;padding:12px max(4vw,14px) calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%)}
+.dock .in{max-width:640px;margin:0 auto;display:flex;gap:8px}.dock .btn{flex:1;min-height:54px;font-size:17px}
+.prog{height:10px;background:var(--tq2);border-radius:6px;overflow:hidden;margin:10px 0 4px}.prog b{display:block;height:100%;background:var(--tq);transition:width .3s}
+@media(prefers-reduced-motion:reduce){.prog b{transition:none}}
+.big{font-size:44px;font-weight:700;line-height:1}
+.meta{color:var(--mute);font-size:14px}
+.empty{text-align:center;color:var(--mute);padding:36px 12px}
+.hist{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid var(--line);cursor:pointer}
+.hist:last-child{border-bottom:0}.hist b{flex:1;font-weight:500}
+.pill{font-size:13px;padding:2px 10px;border-radius:999px;white-space:nowrap}
+.pill.sent{background:var(--red);color:#fff}.pill.done{background:var(--tq2);color:var(--tq)}
+.note{background:var(--tq2);border-radius:12px;padding:10px 12px;margin-top:10px;overflow-wrap:anywhere}
+.toggle{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--mute);margin-top:12px;cursor:pointer}
+.toggle input{width:20px;min-height:20px}
+.status{font-size:14px;color:var(--mute);margin:8px 2px}
+.back{border:0;background:none;color:var(--tq);font:500 16px Rubik,sans-serif;min-height:44px;padding:0;cursor:pointer}
+.tools{position:sticky;top:0;z-index:5;background:var(--bg);padding:6px 0 8px;margin:0 -2px}
+.tools input{margin-bottom:8px}
+.dept{margin-top:18px;scroll-margin-top:120px}
+.li{display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;border-left:4px solid transparent}
+.li .no{width:28px;color:var(--mute);font-size:14px;text-align:right;font-variant-numeric:tabular-nums;flex:none}
+.li .nm{flex:1;font-size:17px;overflow-wrap:anywhere}
+.li .u{color:var(--mute);font-size:14px;white-space:nowrap}
+.li .q{white-space:nowrap;min-width:58px;text-align:center;font-size:17px}
+.li.on{background:var(--card);border-left-color:var(--c)}
+.li.on .nm{font-weight:500}
+.li .mini{width:38px;height:38px;font-size:20px;border-radius:10px}
+.own{display:flex;flex-wrap:wrap;gap:8px;padding:10px 0 4px}.own input{flex:1 1 180px;min-height:44px}.own select{width:auto;min-height:44px}.own .btn{min-height:44px}
+.li{flex-wrap:wrap}.li .nm small{color:var(--mute);font-size:13px;font-weight:400}
+.ctl{display:flex;align-items:center;gap:6px;margin-left:auto}
+.ctl .q{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;min-width:56px;height:38px;font:700 17px Rubik,sans-serif;cursor:text;padding:0 6px}
+.ctl select{width:auto;min-height:38px;height:38px;padding:0 6px;font-size:15px}
+.qin{width:72px!important;min-height:38px!important;height:38px;text-align:center;font-weight:700}
+.li .x{border:0;background:none;color:var(--mute);font-size:22px;width:36px;height:36px;cursor:pointer}
+button,.li,.row,.chip,.hist{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.li:active,.row:active{background:var(--tq2)}.step:active,.btn:active{transform:scale(.94)}
+.sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.pop{background:var(--bg);width:100%;max-width:640px;border-radius:20px 20px 0 0;padding:20px max(4vw,16px) calc(20px + env(safe-area-inset-bottom));display:grid;gap:10px}
+.pop .ttl{font-size:22px}.pop p{margin:0 0 4px}
+a.btn{display:flex;align-items:center;justify-content:center;text-decoration:none}
+.btn.tg{background:#2a9fd8}.btn.wa{background:#1fa855}
+.dock .in a.btn{flex:1;min-height:54px}
+
+.hidden{display:none!important}
+</style></head>
+<body>
+<div class="wrap">
+  <header><h1>Список базара</h1></header>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tWrite" aria-selected="true">Составить</button>
+    <button role="tab" id="tBuy" aria-selected="false">Покупаю</button>
+  </div>
+  <div id="status" class="status" role="status"></div>
+  <section id="vWrite">
+    <div class="tools">
+      <input id="iSearch" type="search" placeholder="Найти товар в списке…" autocomplete="off">
+      <div class="depts" id="depts"></div>
+    </div>
+    <div id="sheet"></div>
+    <div class="lbl">Комментарий к списку</div>
+    <textarea id="iNote" maxlength="400" placeholder="Например: лепёшки бери в Сиябе, батарейки — пальчиковые"></textarea>
+    <button class="btn ghost" id="clear" type="button" style="margin-top:12px;width:100%">Очистить список</button>
+  </section>
+  <section id="vBuy" class="hidden"></section>
+</div>
+<div class="dock" id="dock"><div class="in" id="dockIn"></div></div>
+<div class="sheetbg hidden" id="share"><div class="pop">
+  <b class="ttl">Отправить список</b>
+  <p class="meta" id="shareInfo"></p>
+  <a class="btn tg" id="sTg" target="_blank" rel="noopener">Telegram</a>
+  <a class="btn wa" id="sWa" target="_blank" rel="noopener">WhatsApp</a>
+  <button class="btn ghost" id="sNative" type="button">Другое приложение…</button>
+  <button class="btn ghost" id="sCopy" type="button">Скопировать текст</button>
+  <button class="back" id="sClose" type="button">Закрыть</button>
+</div></div>
+<script>
+{
+const DEPTS=[
+ {k:'veg',n:'Овощи',c:'#3e9b4f',u:'кг',s:['Картошка','Лук','Морковь','Морковь жёлтая','Помидоры','Огурцы','Капуста','Перец болгарский','Перец острый|шт','Баклажаны','Кабачки','Свёкла','Редька','Тыква','Чеснок|шт','Зелень (укроп, кинза)|пучок','Петрушка|пучок','Зелёный лук|пучок','Салат|пучок','Грибы']},
+ {k:'fruit',n:'Фрукты и сухофрукты',c:'#7aa83a',u:'кг',s:['Яблоки','Груши','Бананы','Апельсины','Мандарины','Лимон|шт','Виноград','Гранат','Хурма','Киви','Изюм','Курага','Орехи грецкие','Миндаль','Фисташки']},
+ {k:'meat',n:'Мясо и птица',c:'#c2384b',u:'кг',s:['Говядина','Баранина','Курица целая|шт','Куриные бёдра','Куриное филе','Куриные крылья','Фарш говяжий','Казы|шт','Колбаса варёная|шт','Колбаса копчёная|шт','Сосиски|уп','Рыба']},
+ {k:'milk',n:'Молочное и яйца',c:'#4a86c5',u:'шт',s:['Молоко|л','Кефир|л','Катык','Сузьма','Сметана','Каймак','Творог|уп','Йогурт','Сыр твёрдый|уп','Сыр плавленый|уп','Брынза','Масло сливочное|уп','Яйца (десяток)|уп']},
+ {k:'bread',n:'Хлеб и выпечка',c:'#c98a2e',u:'шт',s:['Лепёшка','Обидон','Батон','Хлеб чёрный','Лаваш|уп','Самса']},
+ {k:'groc',n:'Бакалея',c:'#a26a3b',u:'кг',s:['Рис девзира','Рис лазер','Мука','Сахар','Соль|уп','Макароны|уп','Вермишель|уп','Гречка','Нут','Маш','Фасоль','Чечевица','Овсянка|уп','Манка','Масло растительное|л','Масло хлопковое|л','Томатная паста|шт','Майонез|шт','Кетчуп|шт','Уксус|бут','Зира|уп','Чёрный перец|уп','Лавровый лист|уп','Приправа для плова|уп','Консервы|шт','Дрожжи|уп','Разрыхлитель|уп','Ванилин|уп','Крахмал|уп','Какао|уп']},
+ {k:'tea',n:'Чай, кофе, сладкое',c:'#7b5aa6',u:'уп',s:['Чай зелёный','Чай чёрный','Кофе','Кофе растворимый','Печенье','Конфеты|кг','Шоколад|шт','Вафли','Халва','Мёд|шт','Варенье|шт','Сгущёнка|шт']},
+ {k:'drink',n:'Напитки',c:'#1d9bb5',u:'бут',s:['Вода 5 л','Вода 1,5 л','Минеральная вода','Сок','Газировка','Компот']},
+ {k:'frozen',n:'Заморозка',c:'#5c7f9a',u:'уп',s:['Пельмени','Манты','Вареники','Мороженое|шт','Овощи замороженные','Котлеты']},
+ {k:'baby',n:'Детское',c:'#e39b3b',u:'уп',s:['Подгузники','Влажные салфетки','Детское пюре|шт','Детская смесь|шт','Детская каша','Детский шампунь|шт','Детский крем|шт']},
+ {k:'chem',n:'Бытовая химия',c:'#d0532f',u:'шт',s:['Средство для посуды','Стиральный порошок|уп','Жидкий порошок','Кондиционер для белья','Отбеливатель','Пятновыводитель','Средство для пола','Средство для стёкол','Средство для ванны','Средство для унитаза','Чистящий порошок','Антижир','Освежитель воздуха','Губки для посуды|уп','Тряпки|уп','Перчатки резиновые|пара','Таблетки для посудомойки|уп']},
+ {k:'hyg',n:'Гигиена',c:'#d36b9a',u:'шт',s:['Шампунь','Бальзам для волос','Гель для душа','Мыло','Жидкое мыло','Зубная паста','Зубная щётка','Дезодорант','Туалетная бумага|уп','Бумажные полотенца|уп','Салфетки|уп','Влажные салфетки|уп','Ватные диски|уп','Ватные палочки|уп','Прокладки|уп','Бритвенные станки|уп','Пена для бритья','Крем для рук']},
+ {k:'home',n:'Для дома',c:'#6d7a2e',u:'шт',s:['Батарейки AA|уп','Батарейки AAA|уп','Батарейка-таблетка|шт','Лампочка','Удлинитель','Мусорные пакеты|рулон','Фольга|рулон','Пищевая плёнка|рулон','Пакеты для заморозки|уп','Пергамент|рулон','Спички|уп','Зажигалка','Свечи|уп','Клей','Скотч']},
+ {k:'other',n:'Другое',c:'#7d8587',u:'шт',s:[]}];
+const UNITS=['шт','кг','г','л','уп','бут','пучок','рулон'];
+const D=Object.fromEntries(DEPTS.map((d,i)=>[d.k,{...d,i}]));
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=q=>String(Math.round(q*1000)/1000).replace('.',',');
+const fmtD=t=>{const d=new Date(t);return d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'})+', '+d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})};
+const LS={get(k,f){try{const v=localStorage.getItem(k);return v?JSON.parse(v):f}catch(e){return f}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const keyOf=(n,dk)=>dk+'|'+n.toLowerCase();
+const stepFor=u=>['кг','л'].includes(u)?0.5:u==='г'?100:1;
+const roundQ=q=>Math.round(q*1000)/1000;
+const status=(t,ms)=>{$('status').textContent=t||'';if(ms)setTimeout(()=>{if($('status').textContent===t)$('status').textContent=''},ms)};
+const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c};
+const parse=x=>x.split('|');
+
+/* ---------- состояние в телефоне ---------- */
+let custom=LS.get('bz-cat',[]).filter(c=>c&&D[c.d]&&c.n);            // своё в отделах (навсегда)
+let draft=LS.get('bz-draft',{items:{},note:''});if(!draft.items)draft={items:{},note:''};
+let recv=LS.get('bz-recv',[]);                                         // полученные списки
+let tab='write',openId=null,query='',hideDone=LS.get('bz-hide',false);
+const saveDraft=()=>LS.set('bz-draft',draft),saveRecv=()=>LS.set('bz-recv',recv.slice(0,15));
+
+/* ---------- кодирование списка в ссылку ---------- */
+const b64=s=>btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const unb64=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0)));
+function encodeList(items,note,t){
+  const x=items.map(it=>{const d=D[it.d];const ii=d.s.findIndex(s=>parse(s)[0].toLowerCase()===it.n.toLowerCase());
+    const defU=ii>=0?(parse(d.s[ii])[1]||d.u):d.u;const r=[d.i,ii>=0?ii:it.n,it.q];if(it.u!==defU)r.push(UNITS.indexOf(it.u));return r});
+  return b64(JSON.stringify({t,n:note||undefined,x}))}
+function decodeList(s){try{const o=JSON.parse(unb64(s));if(!o||!Array.isArray(o.x))return null;
+  const items=[];for(const r of o.x.slice(0,400)){const d=DEPTS[r[0]];if(!d)continue;let n,u;
+    if(typeof r[1]==='number'){const e=d.s[r[1]];if(!e)continue;[n,u]=parse(e);u=u||d.u}else{n=String(r[1]).slice(0,80);u=d.u}
+    if(typeof r[3]==='number'&&UNITS[r[3]])u=UNITS[r[3]];const q=Number(r[2]);if(!(q>0))continue;items.push({d:d.k,n,q,u})}
+  return{id:'L'+(Number(o.t)||0),t:Number(o.t)||Date.now(),note:String(o.n||'').slice(0,400),items,done:{}}}catch(e){return null}}
+
+/* ---------- лист «Составить» ---------- */
+const uOpts=u=>UNITS.map(x=>`<option${x===u?' selected':''}>${x}</option>`).join('');
+const dItems=()=>Object.values(draft.items);
+function catOf(d){const c=d.s.map(x=>{const[n,u]=parse(x);return{n,u:u||d.u}});
+  for(const x of custom)if(x.d===d.k&&!c.some(y=>keyOf(y.n,d.k)===keyOf(x.n,d.k)))c.push({n:x.n,u:x.u,own:1});
+  for(const it of dItems())if(it.d===d.k&&!c.some(y=>keyOf(y.n,d.k)===keyOf(it.n,d.k)))c.push({n:it.n,u:it.u,own:1});
+  return c}
+function rowHtml(c,no,d){const it=draft.items[keyOf(c.n,d.k)];const u=it?it.u:c.u;
+  return `<div class="li ${it?'on':''}" data-n="${esc(c.n)}" data-u="${esc(u)}" data-k="${d.k}" data-own="${c.own?1:''}" style="--c:${d.c}">
+   <span class="no">${no}</span><span class="nm">${esc(c.n)}${c.own?'<small> · своё</small>':''}</span>
+   ${it?`<span class="ctl"><button class="step mini" data-a="dec" aria-label="Меньше">−</button><button class="q" data-a="edit" aria-label="Вписать количество">${esc(num(it.q))}</button><select data-unit aria-label="Единица">${uOpts(it.u)}</select><button class="step mini" data-a="inc" aria-label="Больше">+</button></span>`
+       :`<span class="u">${esc(u)}</span>${c.own?`<button class="x" data-a="rm" aria-label="Убрать из каталога">×</button>`:''}`}</div>`}
+function renderWrite(){let no=0;const html=[];
+  for(const d of DEPTS){const c=catOf(d);const rows=[];let cnt=0;
+    for(const x of c){no++;if(draft.items[keyOf(x.n,d.k)])cnt++;if(query&&!x.n.toLowerCase().includes(query))continue;rows.push(rowHtml(x,no,d))}
+    if(query&&!rows.length)continue;
+    html.push(`<div class="dept" id="d-${d.k}"><div class="gh"><i style="background:${d.c}"></i>${d.n}<span>${cnt?'выбрано '+cnt:''}</span></div>${rows.join('')}
+     ${query?'':`<div class="own" data-add="${d.k}"><input placeholder="Другое в «${d.n}»…" maxlength="80" aria-label="Своё в ${d.n}"><select aria-label="Единица">${uOpts(d.u)}</select><button class="btn" type="button">Добавить</button></div>`}</div>`)}
+  $('sheet').innerHTML=html.join('')||`<div class="empty">Ничего не нашлось. Очисти поиск и добавь своё в нужном отделе.</div>`;
+  if(document.activeElement!==$('iNote'))$('iNote').value=draft.note||'';
+  $('clear').classList.toggle('hidden',!dItems().length);dock()}
+function patch(el,dk){const tmp=document.createElement('div');
+  tmp.innerHTML=rowHtml({n:el.dataset.n,u:el.dataset.u,own:!!el.dataset.own},el.querySelector('.no').textContent,D[dk]);el.replaceWith(tmp.firstElementChild);
+  const cnt=dItems().filter(i=>i.d===dk).length;const g=$('d-'+dk);if(g)g.querySelector('.gh span').textContent=cnt?'выбрано '+cnt:'';
+  $('clear').classList.toggle('hidden',!dItems().length);dock()}
+function setQ(el,q,u){const k=keyOf(el.dataset.n,el.dataset.k);
+  if(!(q>0))delete draft.items[k];else draft.items[k]={d:el.dataset.k,n:el.dataset.n,q:roundQ(q),u:u||el.dataset.u,at:(draft.items[k]||{}).at||Date.now()};
+  saveDraft();patch(el,el.dataset.k)}
+$('sheet').onclick=e=>{
+  const f=e.target.closest('[data-add]');if(f){if(e.target.closest('button'))addOwn(f);return}
+  const r=e.target.closest('.li');if(!r||e.target.closest('select,input'))return;
+  const a=e.target.closest('[data-a]')?.dataset.a;const it=draft.items[keyOf(r.dataset.n,r.dataset.k)];
+  if(a==='rm'){custom=custom.filter(x=>keyOf(x.n,x.d)!==keyOf(r.dataset.n,r.dataset.k));LS.set('bz-cat',custom);r.remove();return}
+  if(a==='edit'){const b=r.querySelector('.q');const inp=document.createElement('input');inp.className='qin';inp.inputMode='decimal';inp.value=num(it.q);inp.setAttribute('aria-label','Своё количество');
+    b.replaceWith(inp);inp.focus();inp.select();let done=false;
+    const commit=()=>{if(done)return;done=true;const v=parseFloat(inp.value.replace(',','.'));isNaN(v)?patch(r,r.dataset.k):setQ(r,v,it.u)};
+    inp.onkeydown=ev=>{if(ev.key==='Enter'){ev.preventDefault();inp.blur()}};inp.onblur=commit;return}
+  if(a==='inc'||a==='dec'){setQ(r,(it.q||0)+(a==='inc'?1:-1)*stepFor(it.u),it.u);return}
+  if(!it)setQ(r,r.dataset.u==='г'?100:1,r.dataset.u)};
+$('sheet').onchange=e=>{const s=e.target.closest('select[data-unit]');if(!s)return;const r=s.closest('.li');const it=draft.items[keyOf(r.dataset.n,r.dataset.k)];if(!it)return;
+  const q=s.value==='г'&&it.u!=='г'?100:it.u==='г'&&s.value!=='г'?1:it.q;r.dataset.u=s.value;setQ(r,q,s.value)};
+$('sheet').onkeydown=e=>{const f=e.target.closest('[data-add]');if(f&&e.key==='Enter'&&e.target.matches('input')){e.preventDefault();addOwn(f)}};
+function addOwn(f){const inp=f.querySelector('input');const n=inp.value.trim().slice(0,80);if(!n)return;const dk=f.dataset.add;const u=f.querySelector('select').value;
+  const builtin=D[dk].s.some(x=>parse(x)[0].toLowerCase()===n.toLowerCase());
+  if(!builtin&&!custom.some(x=>keyOf(x.n,x.d)===keyOf(n,dk))){custom.push({d:dk,n,u});LS.set('bz-cat',custom)}
+  const k=keyOf(n,dk);if(!draft.items[k]){draft.items[k]={d:dk,n,q:u==='г'?100:1,u,at:Date.now()};saveDraft()}
+  inp.value='';inp.blur();renderWrite();const el=[...$('d-'+dk).querySelectorAll('.li')].find(x=>keyOf(x.dataset.n,dk)===k);el&&el.scrollIntoView({block:'center'})}
+let noteT;$('iNote').oninput=()=>{clearTimeout(noteT);noteT=setTimeout(()=>{draft.note=$('iNote').value.trim();saveDraft()},300)};
+$('clear').onclick=()=>{if($('clear').dataset.sure){draft={items:{},note:''};saveDraft();delete $('clear').dataset.sure;$('clear').textContent='Очистить список';renderWrite();window.scrollTo(0,0)}
+  else{$('clear').dataset.sure=1;$('clear').textContent='Точно очистить? Нажми ещё раз';setTimeout(()=>{delete $('clear').dataset.sure;$('clear').textContent='Очистить список'},3000)}};
+$('depts').innerHTML=DEPTS.map(d=>`<button class="chip" type="button" data-d="${d.k}"><i style="background:${d.c}"></i>${d.n}</button>`).join('');
+$('depts').onclick=e=>{const b=e.target.closest('[data-d]');if(b)$('d-'+b.dataset.d)?.scrollIntoView({behavior:'smooth',block:'start'})};
+$('iSearch').oninput=()=>{query=$('iSearch').value.trim().toLowerCase();renderWrite()};
+
+/* ---------- отправка ---------- */
+function groups(items){return DEPTS.map(d=>({d,items:items.filter(i=>i.d===d.k).sort((a,b)=>(a.at||0)-(b.at||0))})).filter(g=>g.items.length)}
+let shareData=null;
+function openShare(){const items=dItems();if(!items.length)return;const t=Date.now();draft.note=$('iNote').value.trim();saveDraft();
+  const base=location.href.split('#')[0].split('?')[0];const url=base+'#l='+encodeList(items,draft.note,t);
+  const lines=['Список на базар — '+fmtD(t),''];
+  for(const g of groups(items)){lines.push(g.d.n.toUpperCase());for(const i of g.items)lines.push('• '+i.n+' — '+num(i.q)+' '+i.u);lines.push('')}
+  if(draft.note)lines.push('Комментарий: '+draft.note,'');
+  const text=lines.join('\n')+'Открыть с галочками:';shareData={text,url};
+  $('shareInfo').textContent=items.length+' '+plural(items.length,'позиция','позиции','позиций')+' по отделам + ссылка с галочками';
+  $('sTg').href='https://t.me/share/url?url='+encodeURIComponent(url)+'&text='+encodeURIComponent(text);
+  $('sWa').href='https://wa.me/?text='+encodeURIComponent(text+'\n'+url);
+  $('sNative').classList.toggle('hidden',!navigator.share);
+  if(location.protocol==='file:')status('Открой приложение по ссылке из интернета, иначе ссылка в сообщении не откроется у мужа.');
+  $('share').classList.remove('hidden')}
+const closeShare=()=>$('share').classList.add('hidden');
+$('sClose').onclick=closeShare;$('share').onclick=e=>{if(e.target.id==='share')closeShare()};
+$('sTg').addEventListener('click',()=>setTimeout(closeShare,300));$('sWa').addEventListener('click',()=>setTimeout(closeShare,300));
+$('sNative').onclick=async()=>{try{await navigator.share({text:shareData.text+'\n'+shareData.url});closeShare()}catch(e){}};
+$('sCopy').onclick=async()=>{try{await navigator.clipboard.writeText(shareData.text+'\n'+shareData.url);status('Текст скопирован — вставь его в чат',3000);closeShare()}catch(e){status('Не удалось скопировать',3000)}};
+
+/* ---------- «Покупаю» ---------- */
+function receive(){const m=location.hash.match(/^#l=([A-Za-z0-9_-]+)$/);if(!m)return false;const L=decodeList(m[1]);history.replaceState(null,'',location.pathname+location.search);
+  if(!L||!L.items.length){status('Ссылка на список повреждена — попроси отправить ещё раз.',6000);return false}
+  const old=recv.find(x=>x.id===L.id);if(!old){recv.unshift(L);saveRecv()}openId=L.id;return true}
+function renderBuy(){const v=$('vBuy');const cur=openId&&recv.find(x=>x.id===openId);
+  if(!cur){dockHide();v.innerHTML=recv.length?`<div class="lbl">Присланные списки</div><div class="card" style="padding:0 4px">`+recv.map(l=>{const n=l.items.length,dn=Object.keys(l.done).length;
+      return `<div class="hist" data-open="${esc(l.id)}"><b>${esc(fmtD(l.t))}</b><span class="meta">${n} поз.</span><span class="pill ${dn>=n?'done':'sent'}">${dn>=n?'куплено':dn+' из '+n}</span></div>`}).join('')+'</div>'
+     :`<div class="empty">Здесь появится список, когда жена его пришлёт.<br>Открой ссылку из её сообщения в Telegram или WhatsApp.</div>`;return}
+  const it=cur.items.map((x,i)=>({...x,i,done:!!cur.done[i]}));const dn=it.filter(x=>x.done).length;const pct=Math.round(dn/it.length*100);
+  const shown=hideDone?it.filter(x=>!x.done):it;
+  v.innerHTML=`<button class="back" id="back">← Все списки</button>
+   <div class="card"><div class="meta">Список от ${esc(fmtD(cur.t))}</div>
+    <div style="display:flex;align-items:baseline;gap:10px;margin-top:6px"><span class="big">${dn}</span><span class="meta">из ${it.length} куплено</span></div>
+    <div class="prog"><b style="width:${pct}%"></b></div>${cur.note?`<div class="note">${esc(cur.note)}</div>`:''}
+    <label class="toggle"><input type="checkbox" id="hide" ${hideDone?'checked':''}> Скрыть купленное</label></div>
+   <div class="buy">${shown.length?DEPTS.map(d=>{const g=shown.filter(x=>x.d===d.k);if(!g.length)return'';const all=it.filter(x=>x.d===d.k);
+     return `<div class="group"><div class="gh"><i style="background:${d.c}"></i>${d.n}<span>${all.filter(x=>x.done).length}/${all.length}</span></div>`+
+      g.map(x=>`<div class="row ${x.done?'done':''}" style="border-left-color:${d.c}" data-t="${x.i}" role="checkbox" aria-checked="${x.done}" tabindex="0"><span class="box"></span><div class="nm">${esc(x.n)}</div><div class="q">${esc(num(x.q)+' '+x.u)}</div></div>`).join('')+'</div>'}).join('')
+     :`<div class="empty">Всё куплено. Можно домой!</div>`}</div>`;
+  $('back').onclick=()=>{openId=null;renderBuy()};
+  $('hide').onchange=e=>{hideDone=e.target.checked;LS.set('bz-hide',hideDone);renderBuy()};
+  const msg=dn>=it.length?'Всё купил ✓ Еду домой':`Купил ${dn} из ${it.length}. Не нашёл: `+it.filter(x=>!x.done).map(x=>x.n).join(', ');
+  $('dock').classList.remove('hidden');
+  $('dockIn').innerHTML=`<a class="btn tg" target="_blank" rel="noopener" href="https://t.me/share/url?url=${encodeURIComponent(' ')}&text=${encodeURIComponent(msg)}">Сообщить в Telegram</a><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">WhatsApp</a>`}
+function toggle(el){const cur=recv.find(x=>x.id===openId);if(!cur)return;const i=el.dataset.t;cur.done[i]?delete cur.done[i]:cur.done[i]=1;saveRecv();
+  const y=window.scrollY;renderBuy();window.scrollTo(0,y);try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
+$('vBuy').onclick=e=>{const o=e.target.closest('[data-open]');if(o){openId=o.dataset.open;renderBuy();window.scrollTo(0,0);return}const r=e.target.closest('[data-t]');if(r)toggle(r)};
+$('vBuy').onkeydown=e=>{const r=e.target.closest('[data-t]');if(r&&(e.key===' '||e.key==='Enter')){e.preventDefault();toggle(r)}};
+
+/* ---------- общее ---------- */
+const dockHide=()=>$('dock').classList.add('hidden');
+function dock(){if(tab!=='write')return;const n=dItems().length;$('dock').classList.toggle('hidden',!n);
+  $('dockIn').innerHTML=n?`<button class="btn" id="send">Отправить мужу: ${n} ${plural(n,'позиция','позиции','позиций')}</button>`:'';const s=$('send');if(s)s.onclick=openShare}
+function setTab(t){tab=t;$('tWrite').setAttribute('aria-selected',t==='write');$('tBuy').setAttribute('aria-selected',t==='buy');
+  $('vWrite').classList.toggle('hidden',t!=='write');$('vBuy').classList.toggle('hidden',t!=='buy');t==='write'?renderWrite():renderBuy()}
+$('tWrite').onclick=()=>setTab('write');$('tBuy').onclick=()=>{openId=null;setTab('buy')};
+window.addEventListener('hashchange',()=>{if(receive())setTab('buy')});
+setTab(receive()?'buy':(dItems().length||!recv.length?'write':'write'));
+
+}
+</script>
+</body>
+</html>
