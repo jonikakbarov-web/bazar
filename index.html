@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#137a7f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Базар">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -130,7 +131,8 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
 <div class="sheetbg hidden" id="share"><div class="pop">
   <b class="ttl">Отправить список</b>
   <p class="meta" id="shareInfo"></p>
-  <a class="btn tg" id="sTg" target="_blank" rel="noopener">Telegram</a>
+  <button class="btn" id="sBot" type="button">Отправить мужу в Telegram</button>
+  <a class="btn tg" id="sTg" target="_blank" rel="noopener">Telegram (выбрать чат)</a>
   <a class="btn wa" id="sWa" target="_blank" rel="noopener">WhatsApp</a>
   <button class="btn ghost" id="sNative" type="button">Другое приложение…</button>
   <button class="btn ghost" id="sCopy" type="button">Скопировать текст</button>
@@ -153,6 +155,21 @@ const DEPTS=[
  {k:'hyg',n:'Гигиена',c:'#d36b9a',u:'шт',s:['Шампунь','Бальзам для волос','Гель для душа','Мыло','Жидкое мыло','Зубная паста','Зубная щётка','Дезодорант','Туалетная бумага|уп','Бумажные полотенца|уп','Салфетки|уп','Влажные салфетки|уп','Ватные диски|уп','Ватные палочки|уп','Прокладки|уп','Бритвенные станки|уп','Пена для бритья','Крем для рук']},
  {k:'home',n:'Для дома',c:'#6d7a2e',u:'шт',s:['Батарейки AA|уп','Батарейки AAA|уп','Батарейка-таблетка|шт','Лампочка','Удлинитель','Мусорные пакеты|рулон','Фольга|рулон','Пищевая плёнка|рулон','Пакеты для заморозки|уп','Пергамент|рулон','Спички|уп','Зажигалка','Свечи|уп','Клей','Скотч']},
  {k:'other',n:'Другое',c:'#7d8587',u:'шт',s:[]}];
+/* Telegram-бот @bazarjay_bot: кому слать */
+const TG={token:'9048023473:AAGVSv9rPZnskkfFdbjiU5r32mWV5z7YBZg',husband:748149827,wife:1828250943};
+async function tgSend(chat,html,btn){if(!chat)return false;
+  const body={chat_id:chat,text:html,parse_mode:'HTML',disable_web_page_preview:true};
+  if(btn)body.reply_markup={inline_keyboard:[[{text:btn.text,web_app:{url:btn.url}}]]};
+  try{let r=await fetch('https://api.telegram.org/bot'+TG.token+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+    if(!r.ok&&btn){body.reply_markup={inline_keyboard:[[{text:btn.text,url:btn.url}]]};r=await fetch('https://api.telegram.org/bot'+TG.token+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json())}
+    if(!r.ok&&btn){delete body.reply_markup;body.text=html+'\n\n'+esc(btn.url);r=await fetch('https://api.telegram.org/bot'+TG.token+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json())}
+    return !!r.ok}catch(e){return false}}
+const TWA=window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData?Telegram.WebApp:null;
+if(TWA){try{TWA.ready();TWA.expand();document.documentElement.dataset.theme=TWA.colorScheme==='dark'?'dark':'light';
+  TWA.onEvent('themeChanged',()=>{document.documentElement.dataset.theme=TWA.colorScheme==='dark'?'dark':'light'})}catch(e){}}
+const haptic=t=>{try{TWA&&TWA.HapticFeedback&&(t?TWA.HapticFeedback.notificationOccurred(t):TWA.HapticFeedback.selectionChanged())}catch(e){}};
+document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a||!TWA)return;e.preventDefault();
+  try{/^https:\/\/t\.me\//.test(a.href)?TWA.openTelegramLink(a.href):TWA.openLink(a.href)}catch(x){location.href=a.href}},true);
 const UNITS=['шт','кг','г','л','уп','бут','пучок','рулон'];
 const D=Object.fromEntries(DEPTS.map((d,i)=>[d.k,{...d,i}]));
 const $=id=>document.getElementById(id);
@@ -212,7 +229,7 @@ function patch(el,dk){const tmp=document.createElement('div');
   tmp.innerHTML=rowHtml({n:el.dataset.n,u:el.dataset.u,own:!!el.dataset.own},el.querySelector('.no').textContent,D[dk]);el.replaceWith(tmp.firstElementChild);
   const cnt=dItems().filter(i=>i.d===dk).length;const g=$('d-'+dk);if(g)g.querySelector('.gh span').textContent=cnt?'выбрано '+cnt:'';
   $('clear').classList.toggle('hidden',!dItems().length);dock()}
-function setQ(el,q,u){const k=keyOf(el.dataset.n,el.dataset.k);
+function setQ(el,q,u){haptic();const k=keyOf(el.dataset.n,el.dataset.k);
   if(!(q>0))delete draft.items[k];else draft.items[k]={d:el.dataset.k,n:el.dataset.n,q:roundQ(q),u:u||el.dataset.u,at:(draft.items[k]||{}).at||Date.now()};
   saveDraft();patch(el,el.dataset.k)}
 $('sheet').onclick=e=>{
@@ -245,11 +262,14 @@ $('iSearch').oninput=()=>{query=$('iSearch').value.trim().toLowerCase();renderWr
 function groups(items){return DEPTS.map(d=>({d,items:items.filter(i=>i.d===d.k).sort((a,b)=>(a.at||0)-(b.at||0))})).filter(g=>g.items.length)}
 let shareData=null;
 function openShare(){const items=dItems();if(!items.length)return;const t=Date.now();draft.note=$('iNote').value.trim();saveDraft();
-  const base=location.href.split('#')[0].split('?')[0];const url=base+'#l='+encodeList(items,draft.note,t);
+  const base=location.origin+location.pathname;const url=base+'?l='+encodeList(items,draft.note,t);
   const lines=['Список на базар — '+fmtD(t),''];
   for(const g of groups(items)){lines.push(g.d.n.toUpperCase());for(const i of g.items)lines.push('• '+i.n+' — '+num(i.q)+' '+i.u);lines.push('')}
   if(draft.note)lines.push('Комментарий: '+draft.note,'');
-  const text=lines.join('\n')+'Открыть с галочками:';shareData={text,url};
+  const text=lines.join('\n')+'Открыть с галочками:';
+  const hl=['<b>Список на базар</b> — '+esc(fmtD(t)),''];for(const g of groups(items)){hl.push('<b>'+esc(g.d.n)+'</b>');for(const i of g.items)hl.push('• '+esc(i.n)+' — '+esc(num(i.q)+' '+i.u));hl.push('')}
+  if(draft.note)hl.push('<i>'+esc(draft.note)+'</i>','');
+  shareData={text,url,html:hl.join('\n').trim(),count:items.length};$('sBot').classList.toggle('hidden',!TG.husband);$('sBot').disabled=false;$('sBot').textContent='Отправить мужу в Telegram';
   $('shareInfo').textContent=items.length+' '+plural(items.length,'позиция','позиции','позиций')+' по отделам + ссылка с галочками';
   $('sTg').href='https://t.me/share/url?url='+encodeURIComponent(url)+'&text='+encodeURIComponent(text);
   $('sWa').href='https://wa.me/?text='+encodeURIComponent(text+'\n'+url);
@@ -257,13 +277,19 @@ function openShare(){const items=dItems();if(!items.length)return;const t=Date.n
   if(location.protocol==='file:')status('Открой приложение по ссылке из интернета, иначе ссылка в сообщении не откроется у мужа.');
   $('share').classList.remove('hidden')}
 const closeShare=()=>$('share').classList.add('hidden');
+$('sBot').onclick=async()=>{const b=$('sBot');b.disabled=true;b.textContent='Отправляю…';
+  const ok=await tgSend(TG.husband,shareData.html,{text:'Открыть с галочками ✅',url:shareData.url});
+  if(ok){haptic('success');closeShare();status('Список отправлен ✓ Муж получил уведомление',5000)}else{b.disabled=false;b.textContent='Не ушло — попробуй ещё раз';status('Нет интернета или бот недоступен. Можно отправить через Telegram вручную.',5000)}};
 $('sClose').onclick=closeShare;$('share').onclick=e=>{if(e.target.id==='share')closeShare()};
 $('sTg').addEventListener('click',()=>setTimeout(closeShare,300));$('sWa').addEventListener('click',()=>setTimeout(closeShare,300));
 $('sNative').onclick=async()=>{try{await navigator.share({text:shareData.text+'\n'+shareData.url});closeShare()}catch(e){}};
 $('sCopy').onclick=async()=>{try{await navigator.clipboard.writeText(shareData.text+'\n'+shareData.url);status('Текст скопирован — вставь его в чат',3000);closeShare()}catch(e){status('Не удалось скопировать',3000)}};
 
 /* ---------- «Покупаю» ---------- */
-function receive(){const m=location.hash.match(/^#l=([A-Za-z0-9_-]+)$/);if(!m)return false;const L=decodeList(m[1]);history.replaceState(null,'',location.pathname+location.search);
+function receive(){let code=new URLSearchParams(location.search).get('l');
+  if(!code){const m=location.hash.match(/[#&]l=([A-Za-z0-9_-]+)/);if(m)code=m[1]}
+  if(!code&&TWA&&TWA.initDataUnsafe&&TWA.initDataUnsafe.start_param)code=TWA.initDataUnsafe.start_param;
+  if(!code||!/^[A-Za-z0-9_-]+$/.test(code))return false;const L=decodeList(code);if(!TWA)history.replaceState(null,'',location.pathname);
   if(!L||!L.items.length){status('Ссылка на список повреждена — попроси отправить ещё раз.',6000);return false}
   const old=recv.find(x=>x.id===L.id);if(!old){recv.unshift(L);saveRecv()}openId=L.id;return true}
 function renderBuy(){const v=$('vBuy');const cur=openId&&recv.find(x=>x.id===openId);
@@ -285,8 +311,10 @@ function renderBuy(){const v=$('vBuy');const cur=openId&&recv.find(x=>x.id===ope
   $('hide').onchange=e=>{hideDone=e.target.checked;LS.set('bz-hide',hideDone);renderBuy()};
   const msg=dn>=it.length?'Всё купил ✓ Еду домой':`Купил ${dn} из ${it.length}. Не нашёл: `+it.filter(x=>!x.done).map(x=>x.n).join(', ');
   $('dock').classList.remove('hidden');
-  $('dockIn').innerHTML=`<a class="btn tg" target="_blank" rel="noopener" href="https://t.me/share/url?url=${encodeURIComponent(' ')}&text=${encodeURIComponent(msg)}">Сообщить в Telegram</a><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">WhatsApp</a>`}
-function toggle(el){const cur=recv.find(x=>x.id===openId);if(!cur)return;const i=el.dataset.t;cur.done[i]?delete cur.done[i]:cur.done[i]=1;saveRecv();
+  $('dockIn').innerHTML=TG.wife?`<button class="btn tg" id="rep" type="button">${dn>=it.length?'Всё купил — сообщить жене':'Сообщить жене'}</button>`
+    :`<a class="btn tg" target="_blank" rel="noopener" href="https://t.me/share/url?url=${encodeURIComponent(' ')}&text=${encodeURIComponent(msg)}">Сообщить в Telegram</a><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">WhatsApp</a>`;
+  const rp=$('rep');if(rp)rp.onclick=async()=>{rp.disabled=true;rp.textContent='Отправляю…';const ok=await tgSend(TG.wife,esc(msg));rp.disabled=false;rp.textContent=ok?'Отправлено ✓':'Не ушло — ещё раз'}}
+function toggle(el){const cur=recv.find(x=>x.id===openId);if(!cur)return;const i=el.dataset.t;cur.done[i]?delete cur.done[i]:cur.done[i]=1;saveRecv();haptic();
   const y=window.scrollY;renderBuy();window.scrollTo(0,y);try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
 $('vBuy').onclick=e=>{const o=e.target.closest('[data-open]');if(o){openId=o.dataset.open;renderBuy();window.scrollTo(0,0);return}const r=e.target.closest('[data-t]');if(r)toggle(r)};
 $('vBuy').onkeydown=e=>{const r=e.target.closest('[data-t]');if(r&&(e.key===' '||e.key==='Enter')){e.preventDefault();toggle(r)}};
