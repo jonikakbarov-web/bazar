@@ -26,7 +26,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Rubik,system-u
 .wrap{max-width:640px;margin:0 auto;padding:16px max(4vw,14px) 120px}
 header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 h1{font-size:32px;line-height:1.05;margin:0;font-weight:700;text-wrap:balance}
-.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--tq2);border-radius:14px;padding:4px;margin-bottom:16px}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--tq2);border-radius:14px;padding:4px;margin-bottom:16px}
 .tabs button{border:0;background:none;font:500 16px Rubik,sans-serif;color:var(--tq);min-height:44px;border-radius:11px;cursor:pointer;position:relative}
 .tabs button[aria-selected=true]{background:var(--tq);color:#fff}
 .badge{display:inline-block;min-width:20px;padding:0 6px;border-radius:10px;background:var(--red);color:#fff;font-size:13px;margin-left:6px;line-height:20px}
@@ -105,6 +105,7 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
 .btn.tg{background:#2a9fd8}.btn.wa{background:#1fa855}
 .dock .in a.btn{flex:1;min-height:54px}
 
+.tablink{display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:11px;color:var(--tq);font-weight:500;text-decoration:none}
 .hidden{display:none!important}
 </style></head>
 <body>
@@ -113,6 +114,7 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
   <div class="tabs" role="tablist">
     <button role="tab" id="tWrite" aria-selected="true">Составить</button>
     <button role="tab" id="tBuy" aria-selected="false">Покупаю</button>
+    <a class="tablink" href="game.html">Игра</a>
   </div>
   <div id="status" class="status" role="status"></div>
   <section id="vWrite">
@@ -168,7 +170,7 @@ const TWA=window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData?Telegram.We
 if(TWA){try{TWA.ready();TWA.expand();document.documentElement.dataset.theme=TWA.colorScheme==='dark'?'dark':'light';
   TWA.onEvent('themeChanged',()=>{document.documentElement.dataset.theme=TWA.colorScheme==='dark'?'dark':'light'})}catch(e){}}
 const haptic=t=>{try{TWA&&TWA.HapticFeedback&&(t?TWA.HapticFeedback.notificationOccurred(t):TWA.HapticFeedback.selectionChanged())}catch(e){}};
-document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a||!TWA)return;e.preventDefault();
+document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a||!TWA||a.href.startsWith(location.origin))return;e.preventDefault();
   try{/^https:\/\/t\.me\//.test(a.href)?TWA.openTelegramLink(a.href):TWA.openLink(a.href)}catch(x){location.href=a.href}},true);
 const UNITS=['шт','кг','г','л','уп','бут','пучок','рулон'];
 const D=Object.fromEntries(DEPTS.map((d,i)=>[d.k,{...d,i}]));
