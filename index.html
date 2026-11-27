@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Базар">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="fam.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -106,6 +107,10 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
 .dock .in a.btn{flex:1;min-height:54px}
 
 .tablink{display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:11px;color:var(--tq);font-weight:500;text-decoration:none}
+.pair{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:15px}
+.pair>span{flex:1}.pair .pt{flex-basis:100%}.pair .pt b{display:block}.pair .pt span{color:var(--mute);font-size:14px}
+.pair .pc{flex-basis:100%}.pair .pf{flex-basis:100%;display:flex;gap:8px}.pair .pf input{flex:1;min-height:44px;text-transform:uppercase}.pair .pf .btn{min-height:44px}
+.lnk{border:0;background:none;color:var(--tq);font:500 15px Rubik,sans-serif;cursor:pointer;min-height:36px;padding:0 4px}
 .hidden{display:none!important}
 </style></head>
 <body>
@@ -116,6 +121,7 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
     <button role="tab" id="tBuy" aria-selected="false">Покупаю</button>
     <a class="tablink" href="game.html">Игра</a>
   </div>
+  <div id="pairCard" class="pair hidden"></div>
   <div id="status" class="status" role="status"></div>
   <section id="vWrite">
     <div class="tools">
@@ -133,7 +139,7 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
 <div class="sheetbg hidden" id="share"><div class="pop">
   <b class="ttl">Отправить список</b>
   <p class="meta" id="shareInfo"></p>
-  <button class="btn" id="sBot" type="button">Отправить мужу в Telegram</button>
+  <button class="btn" id="sBot" type="button">Отправить в Telegram</button>
   <a class="btn tg" id="sTg" target="_blank" rel="noopener">Telegram (выбрать чат)</a>
   <a class="btn wa" id="sWa" target="_blank" rel="noopener">WhatsApp</a>
   <button class="btn ghost" id="sNative" type="button">Другое приложение…</button>
@@ -158,14 +164,8 @@ const DEPTS=[
  {k:'home',n:'Для дома',c:'#6d7a2e',u:'шт',s:['Батарейки AA|уп','Батарейки AAA|уп','Батарейка-таблетка|шт','Лампочка','Удлинитель','Мусорные пакеты|рулон','Фольга|рулон','Пищевая плёнка|рулон','Пакеты для заморозки|уп','Пергамент|рулон','Спички|уп','Зажигалка','Свечи|уп','Клей','Скотч']},
  {k:'other',n:'Другое',c:'#7d8587',u:'шт',s:[]}];
 /* Telegram-бот @bazarjay_bot: кому слать */
-const TG={token:'9048023473:AAGVSv9rPZnskkfFdbjiU5r32mWV5z7YBZg',husband:748149827,wife:1828250943};
-async function tgSend(chat,html,btn){if(!chat)return false;
-  const body={chat_id:chat,text:html,parse_mode:'HTML',disable_web_page_preview:true};
-  if(btn)body.reply_markup={inline_keyboard:[[{text:btn.text,web_app:{url:btn.url}}]]};
-  try{let r=await fetch('https://api.telegram.org/bot'+TG.token+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
-    if(!r.ok&&btn){body.reply_markup={inline_keyboard:[[{text:btn.text,url:btn.url}]]};r=await fetch('https://api.telegram.org/bot'+TG.token+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json())}
-    if(!r.ok&&btn){delete body.reply_markup;body.text=html+'\n\n'+esc(btn.url);r=await fetch('https://api.telegram.org/bot'+TG.token+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json())}
-    return !!r.ok}catch(e){return false}}
+const TG={get partner(){return BZ.fam&&!/ждём/.test(BZ.fam.name)?BZ.fam.id:(BZ.fam?BZ.fam.id:null)},get pname(){return BZ.fam?BZ.fam.name.replace(/\s*\(.*\)$/,''):''}};
+const tgSend=(chat,html,btn)=>BZ.send(chat,html,btn);
 const TWA=window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData?Telegram.WebApp:null;
 if(TWA){try{TWA.ready();TWA.expand();document.documentElement.dataset.theme=TWA.colorScheme==='dark'?'dark':'light';
   TWA.onEvent('themeChanged',()=>{document.documentElement.dataset.theme=TWA.colorScheme==='dark'?'dark':'light'})}catch(e){}}
@@ -271,7 +271,7 @@ function openShare(){const items=dItems();if(!items.length)return;const t=Date.n
   const text=lines.join('\n')+'Открыть с галочками:';
   const hl=['<b>Список на базар</b> — '+esc(fmtD(t)),''];for(const g of groups(items)){hl.push('<b>'+esc(g.d.n)+'</b>');for(const i of g.items)hl.push('• '+esc(i.n)+' — '+esc(num(i.q)+' '+i.u));hl.push('')}
   if(draft.note)hl.push('<i>'+esc(draft.note)+'</i>','');
-  shareData={text,url,html:hl.join('\n').trim(),count:items.length};$('sBot').classList.toggle('hidden',!TG.husband);$('sBot').disabled=false;$('sBot').textContent='Отправить мужу в Telegram';
+  shareData={text,url,html:hl.join('\n').trim(),count:items.length};$('sBot').classList.toggle('hidden',!TG.partner);$('sBot').disabled=false;$('sBot').textContent='Отправить '+(TG.pname||'паре')+' в Telegram';
   $('shareInfo').textContent=items.length+' '+plural(items.length,'позиция','позиции','позиций')+' по отделам + ссылка с галочками';
   $('sTg').href='https://t.me/share/url?url='+encodeURIComponent(url)+'&text='+encodeURIComponent(text);
   $('sWa').href='https://wa.me/?text='+encodeURIComponent(text+'\n'+url);
@@ -280,8 +280,8 @@ function openShare(){const items=dItems();if(!items.length)return;const t=Date.n
   $('share').classList.remove('hidden')}
 const closeShare=()=>$('share').classList.add('hidden');
 $('sBot').onclick=async()=>{const b=$('sBot');b.disabled=true;b.textContent='Отправляю…';
-  const ok=await tgSend(TG.husband,shareData.html,{text:'Открыть с галочками ✅',url:shareData.url});
-  if(ok){haptic('success');closeShare();status('Список отправлен ✓ Муж получил уведомление',5000)}else{b.disabled=false;b.textContent='Не ушло — попробуй ещё раз';status('Нет интернета или бот недоступен. Можно отправить через Telegram вручную.',5000)}};
+  const ok=await tgSend(TG.partner,'<b>'+esc(BZ.me?BZ.me.name:'')+'</b> прислал(а) список 🛒\n\n'+shareData.html,{text:'Открыть с галочками ✅',url:shareData.url});
+  if(ok){haptic('success');closeShare();status('Список отправлен ✓ '+TG.pname+' получил(а) уведомление',5000)}else{b.disabled=false;b.textContent='Не ушло — попробуй ещё раз';status('Нет интернета или бот недоступен. Можно отправить через Telegram вручную.',5000)}};
 $('sClose').onclick=closeShare;$('share').onclick=e=>{if(e.target.id==='share')closeShare()};
 $('sTg').addEventListener('click',()=>setTimeout(closeShare,300));$('sWa').addEventListener('click',()=>setTimeout(closeShare,300));
 $('sNative').onclick=async()=>{try{await navigator.share({text:shareData.text+'\n'+shareData.url});closeShare()}catch(e){}};
@@ -311,11 +311,11 @@ function renderBuy(){const v=$('vBuy');const cur=openId&&recv.find(x=>x.id===ope
      :`<div class="empty">Всё куплено. Можно домой!</div>`}</div>`;
   $('back').onclick=()=>{openId=null;renderBuy()};
   $('hide').onchange=e=>{hideDone=e.target.checked;LS.set('bz-hide',hideDone);renderBuy()};
-  const msg=dn>=it.length?'Всё купил ✓ Еду домой':`Купил ${dn} из ${it.length}. Не нашёл: `+it.filter(x=>!x.done).map(x=>x.n).join(', ');
+  const msg=dn>=it.length?'Всё куплено ✓ Еду домой':`Купил ${dn} из ${it.length}. Не нашёл: `+it.filter(x=>!x.done).map(x=>x.n).join(', ');
   $('dock').classList.remove('hidden');
-  $('dockIn').innerHTML=TG.wife?`<button class="btn tg" id="rep" type="button">${dn>=it.length?'Всё купил — сообщить жене':'Сообщить жене'}</button>`
+  $('dockIn').innerHTML=TG.partner?`<button class="btn tg" id="rep" type="button">${dn>=it.length?'Всё куплено — сообщить '+esc(TG.pname):'Сообщить '+esc(TG.pname)}</button>`
     :`<a class="btn tg" target="_blank" rel="noopener" href="https://t.me/share/url?url=${encodeURIComponent(' ')}&text=${encodeURIComponent(msg)}">Сообщить в Telegram</a><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">WhatsApp</a>`;
-  const rp=$('rep');if(rp)rp.onclick=async()=>{rp.disabled=true;rp.textContent='Отправляю…';const ok=await tgSend(TG.wife,esc(msg));rp.disabled=false;rp.textContent=ok?'Отправлено ✓':'Не ушло — ещё раз'}}
+  const rp=$('rep');if(rp)rp.onclick=async()=>{rp.disabled=true;rp.textContent='Отправляю…';const ok=await tgSend(TG.partner,'<b>'+esc(BZ.me?BZ.me.name:'')+'</b>: '+esc(msg));rp.disabled=false;rp.textContent=ok?'Отправлено ✓':'Не ушло — ещё раз'}}
 function toggle(el){const cur=recv.find(x=>x.id===openId);if(!cur)return;const i=el.dataset.t;cur.done[i]?delete cur.done[i]:cur.done[i]=1;saveRecv();haptic();
   const y=window.scrollY;renderBuy();window.scrollTo(0,y);try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
 $('vBuy').onclick=e=>{const o=e.target.closest('[data-open]');if(o){openId=o.dataset.open;renderBuy();window.scrollTo(0,0);return}const r=e.target.closest('[data-t]');if(r)toggle(r)};
@@ -324,11 +324,24 @@ $('vBuy').onkeydown=e=>{const r=e.target.closest('[data-t]');if(r&&(e.key===' '|
 /* ---------- общее ---------- */
 const dockHide=()=>$('dock').classList.add('hidden');
 function dock(){if(tab!=='write')return;const n=dItems().length;$('dock').classList.toggle('hidden',!n);
-  $('dockIn').innerHTML=n?`<button class="btn" id="send">Отправить мужу: ${n} ${plural(n,'позиция','позиции','позиций')}</button>`:'';const s=$('send');if(s)s.onclick=openShare}
+  $('dockIn').innerHTML=n?`<button class="btn" id="send">Отправить${TG.pname?' '+esc(TG.pname):''}: ${n} ${plural(n,'позиция','позиции','позиций')}</button>`:'';const s=$('send');if(s)s.onclick=openShare}
 function setTab(t){tab=t;$('tWrite').setAttribute('aria-selected',t==='write');$('tBuy').setAttribute('aria-selected',t==='buy');
   $('vWrite').classList.toggle('hidden',t!=='write');$('vBuy').classList.toggle('hidden',t!=='buy');t==='write'?renderWrite():renderBuy()}
 $('tWrite').onclick=()=>setTab('write');$('tBuy').onclick=()=>{openId=null;setTab('buy')};
 window.addEventListener('hashchange',()=>{if(receive())setTab('buy')});
+function renderPair(){const el=$('pairCard');const f=BZ.fam;
+  if(!BZ.me){el.classList.add('hidden');return}
+  el.classList.remove('hidden');
+  if(f){el.innerHTML=`<span>Пара: <b>${esc(f.name)}</b></span><button class="lnk" id="unp" type="button">Сменить</button>`;
+    $('unp').onclick=()=>{if($('unp').dataset.sure){BZ.unpair();renderPair();dock()}else{$('unp').dataset.sure=1;$('unp').textContent='Точно отключить?'}};return}
+  el.innerHTML=`<div class="pt"><b>Подключи пару</b><span>Мужа, жену или того, с кем ходите на базар. Списки будут приходить ему в Telegram, и сможете играть вместе.</span></div>
+   <div class="pc">Твой код: <b>${BZ.code(BZ.me.id)}</b> <button class="lnk" id="cpy" type="button">Отправить код</button></div>
+   <div class="pf"><input id="pcode" placeholder="Код пары" maxlength="12" autocapitalize="characters" aria-label="Код пары"><button class="btn" id="pgo" type="button">Подключить</button></div>`;
+  $('cpy').onclick=()=>{const t='Мой код в «Списке базара»: '+BZ.code(BZ.me.id)+'\nОткрой @bazarjay_bot → «Базар» и введи этот код.';
+    const u='https://t.me/share/url?url='+encodeURIComponent('https://t.me/bazarjay_bot')+'&text='+encodeURIComponent(t);try{TWA?TWA.openTelegramLink(u):window.open(u)}catch(e){location.href=u}};
+  $('pgo').onclick=async()=>{const b=$('pgo');b.disabled=true;b.textContent='Отправляю…';const r=await BZ.invite($('pcode').value);
+    b.disabled=false;b.textContent='Подключить';if(r.ok){status('Приглашение отправлено ✓ Как только пара нажмёт «Подключиться», всё заработает',6000);renderPair();dock()}else status(r.err,6000)}}
+BZ.load().then(()=>{renderPair();dock();if(BZ.justPaired){status('Пара подключена ✓ '+BZ.fam.name,5000);haptic('success')}});
 setTab(receive()?'buy':(dItems().length||!recv.length?'write':'write'));
 
 }
