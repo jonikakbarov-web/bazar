@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>4 в ряд</title>
+<meta name="theme-color" content="#137a7f">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: игривый, тёплый — вечерняя игра двоих
+   IDEA: деревянная доска «4 в ряд» на скатерти
+   PICTURE: сама доска во весь экран, фишки падают
+   COLOUR and TYPE: бирюзовая доска, гранатовые и шафрановые фишки; Rubik
+   LAYOUT: счёт сверху, доска по центру, кнопки снизу */
+:root{color-scheme:light dark;--bg:light-dark(#fbf8f2,#0f1b1d);--card:light-dark(#fff,#16272a);--ink:light-dark(#1c2426,#eef3f1);
+--mute:light-dark(#6b7476,#93a4a3);--line:light-dark(#e8e2d6,#263a3d);--board:#137a7f;--hole:light-dark(#fbf8f2,#0f1b1d);
+--p0:#c2384b;--p1:#f0b429;--tq2:light-dark(#e3f2f1,#173638)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Rubik,system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:520px;margin:0 auto;padding:14px max(4vw,12px) calc(24px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.top a{color:var(--board);text-decoration:none;font-weight:500;min-height:44px;display:flex;align-items:center}
+h1{font-size:28px;margin:0;flex:1;text-align:right;line-height:1.05}
+.score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px}
+.pl{display:flex;align-items:center;gap:8px}.pl:last-child{flex-direction:row-reverse;text-align:right}
+.disc{width:28px;height:28px;border-radius:50%;flex:none;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18)}
+.pl b{display:block;font-size:16px}.pl small{color:var(--mute);font-size:13px}
+.on{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2fb36b;margin-left:4px;vertical-align:middle}
+.sc{font:700 28px Rubik,sans-serif;font-variant-numeric:tabular-nums}
+.turn{text-align:center;font-weight:500;margin:14px 0 10px;min-height:24px}
+.board{position:relative;background:var(--board);border-radius:18px;padding:8px;display:grid;grid-template-columns:repeat(7,1fr);gap:6px;box-shadow:0 10px 0 #0e5d61,0 14px 24px rgba(0,0,0,.2);touch-action:manipulation}
+.col{display:grid;grid-template-rows:repeat(6,1fr);gap:6px;cursor:pointer;border-radius:10px;padding:2px 0}
+.col.hint{background:rgba(255,255,255,.12)}
+.cell{aspect-ratio:1;border-radius:50%;background:var(--hole);position:relative;overflow:hidden;box-shadow:inset 0 3px 0 rgba(0,0,0,.18)}
+.cell i{position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 -4px 0 rgba(0,0,0,.2),inset 0 3px 0 rgba(255,255,255,.25)}
+.cell i.drop{animation:drop .38s cubic-bezier(.4,1.4,.6,1)}
+.cell.win i{animation:pulse .9s ease-in-out infinite alternate}
+@keyframes drop{from{transform:translateY(calc(var(--h) * -100%))}to{transform:none}}
+@keyframes pulse{to{transform:scale(.8)}}
+@media(prefers-reduced-motion:reduce){.cell i.drop,.cell.win i{animation:none}}
+.btns{display:flex;gap:8px;margin-top:22px}
+.btn{flex:1;border:0;border-radius:12px;min-height:50px;font:500 16px Rubik,sans-serif;cursor:pointer;background:var(--board);color:#fff}
+.btn.ghost{background:var(--tq2);color:var(--board)}
+.btn:active{transform:scale(.97)}
+.who{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center}
+.who p{margin:0 0 12px}.who .btns{margin-top:0}
+.status{font-size:14px;color:var(--mute);text-align:center;margin-top:12px;min-height:20px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="./">← Список базара</a><h1>4 в ряд</h1></div>
+  <div class="who hidden" id="who"><p>Кто играет на этом телефоне?</p><div class="btns"><button class="btn" data-me="0" style="background:var(--p0)">Жахонгир</button><button class="btn" data-me="1" style="background:var(--p1);color:#3a2a00">Жасмин</button></div></div>
+  <div id="game" class="hidden">
+    <div class="score">
+      <div class="pl"><span class="disc" style="background:var(--p0)"></span><div><b id="n0">Жахонгир</b><small id="s0"></small></div></div>
+      <div class="sc" id="sc">0 : 0</div>
+      <div class="pl"><span class="disc" style="background:var(--p1)"></span><div><b id="n1">Жасмин</b><small id="s1"></small></div></div>
+    </div>
+    <div class="turn" id="turn" aria-live="polite"></div>
+    <div class="board" id="board" role="grid" aria-label="Игровое поле 7 на 6"></div>
+    <div class="btns"><button class="btn" id="newg" type="button">Новая игра</button><button class="btn ghost" id="poke" type="button">Позвать</button></div>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+<script>
+{
+const TOPIC='bzj-xhVrydzuy3HnSdN7';
+const NTFY='https://ntfy.sh/'+TOPIC;
+const BOT='9048023473:AAGVSv9rPZnskkfFdbjiU5r32mWV5z7YBZg';
+const P=[{name:'Жахонгир',tg:748149827,c:'var(--p0)'},{name:'Жасмин',tg:1828250943,c:'var(--p1)'}];
+const URL_=location.origin+location.pathname.replace(/[^/]*$/,'')+'game.html';
+const W=7,H=6;const $=id=>document.getElementById(id);
+const LS={get(k,f){try{const v=localStorage.getItem(k);return v?JSON.parse(v):f}catch(e){return f}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const TWA=window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData?Telegram.WebApp:null;
+if(TWA){try{TWA.ready();TWA.expand();const th=()=>document.documentElement.dataset.theme=TWA.colorScheme==='dark'?'dark':'light';th();TWA.onEvent('themeChanged',th)}catch(e){}}
+const haptic=t=>{try{TWA&&TWA.HapticFeedback&&(t?TWA.HapticFeedback.notificationOccurred(t):TWA.HapticFeedback.impactOccurred('light'))}catch(e){}};
+
+/* кто я */
+let me=null;const tgId=TWA&&TWA.initDataUnsafe&&TWA.initDataUnsafe.user&&TWA.initDataUnsafe.user.id;
+if(tgId)me=P.findIndex(p=>p.tg===tgId);if(me<0||me===null)me=LS.get('g-me',null);
+/* состояние: игры и ходы как журнал событий */
+let events=LS.get('g-events',[]);const seen=new Set(events.map(e=>e.id));
+let lastPing=[0,0],dropKey=null;
+const save=()=>LS.set('g-events',events.slice(-400));
+function addEvent(e){if(!e||!e.id||seen.has(e.id))return false;seen.add(e.id);events.push(e);events.sort((a,b)=>(a.ts||0)-(b.ts||0));save();return true}
+
+/* разбор состояния из журнала */
+function state(){const games=events.filter(e=>e.t==='new');const g=games[games.length-1];
+  const board=Array.from({length:W},()=>[]);let turn=g?g.first:0,winner=null,line=[],moves=0;
+  const score=[0,0];
+  // счёт по всем играм
+  for(const gg of games){const r=play(gg);if(r.winner!==null&&r.winner!==-1)score[r.winner]++}
+  if(g){const r=play(g);return{g,...r,score}}
+  return{g:null,board,turn,winner,line,moves,score}}
+function play(g){const board=Array.from({length:W},()=>[]);let turn=g.first,winner=null,line=[],moves=0,last=null;
+  const mv=events.filter(e=>e.t==='move'&&e.g===g.gid).sort((a,b)=>a.n-b.n);const used=new Set();
+  for(const m of mv){if(winner!==null)break;if(used.has(m.n)||m.n!==moves||m.by!==turn||m.c<0||m.c>=W||board[m.c].length>=H)continue;
+    used.add(m.n);board[m.c].push(turn);last={c:m.c,r:board[m.c].length-1};moves++;
+    const w=check(board,m.c,board[m.c].length-1);if(w){winner=turn;line=w}else if(moves===W*H)winner=-1;else turn=1-turn}
+  return{board,turn,winner,line,moves,last}}
+function check(b,c,r){const p=b[c][r];const at=(x,y)=>x>=0&&x<W&&y>=0&&y<H?b[x][y]:undefined;
+  for(const[dx,dy]of[[1,0],[0,1],[1,1],[1,-1]]){let cells=[[c,r]];
+    for(const s of[1,-1]){let x=c+dx*s,y=r+dy*s;while(at(x,y)===p){cells.push([x,y]);x+=dx*s;y+=dy*s}}
+    if(cells.length>=4)return cells}return null}
+
+/* отрисовка */
+function render(){if(me===null){$('who').classList.remove('hidden');$('game').classList.add('hidden');return}
+  $('who').classList.add('hidden');$('game').classList.remove('hidden');
+  const s=state();const op=1-me;
+  $('sc').textContent=s.score[0]+' : '+s.score[1];
+  for(const i of[0,1]){$('n'+i).textContent=P[i].name+(i===me?' (ты)':'');$('s'+i).innerHTML=i!==me&&Date.now()-lastPing[i]<40000?'в игре<span class="on"></span>':''}
+  const win=new Set(s.line.map(([x,y])=>x+','+y));let html='';
+  for(let c=0;c<W;c++){html+=`<div class="col" data-c="${c}" role="button" aria-label="Колонка ${c+1}">`;
+    for(let r=H-1;r>=0;r--){const v=s.board[c][r];const isLast=s.last&&s.last.c===c&&s.last.r===r;const k=s.g?s.g.gid+':'+s.moves:'';
+      html+=`<div class="cell${win.has(c+','+r)?' win':''}">${v===undefined?'':`<i class="${isLast&&k!==dropKey?'drop':''}" style="background:${P[v].c};--h:${H-r}"></i>`}</div>`}
+    html+='</div>'}
+  $('board').innerHTML=html;if(s.g)dropKey=s.g.gid+':'+s.moves;
+  let t;if(!s.g)t='Нажми «Новая игра», чтобы начать';
+  else if(s.winner===-1)t='Ничья! Поле заполнено';
+  else if(s.winner!==null)t=(s.winner===me?'Ты победил'+(me===1?'а':'')+'! 🎉':P[s.winner].name+(s.winner===1?' победила':' победил'));
+  else t=s.turn===me?'Твой ход — нажми на колонку':'Ход: '+P[s.turn].name+'…';
+  $('turn').textContent=t;$('turn').style.color=s.g&&s.winner===null?P[s.turn].c:'';
+  $('newg').textContent=s.g&&s.winner===null&&s.moves>0?'Сдаться и начать заново':'Новая игра'}
+
+/* сеть: ntfy — мгновенная передача ходов, история 12 часов */
+const pub=e=>fetch(NTFY,{method:'POST',body:JSON.stringify(e)}).then(r=>{if(!r.ok)throw 0;status('')}).catch(()=>status('Нет связи — ход сохранён у тебя, отправлю, когда появится интернет.'));
+const status=t=>$('status').textContent=t||'';
+function onMsg(raw){let e;try{e=JSON.parse(raw)}catch(x){return}
+  if(!e||typeof e!=='object')return;
+  if(e.t==='ping'&&(e.by===0||e.by===1)){if(e.by!==me){const was=Date.now()-lastPing[e.by]<40000;lastPing[e.by]=Date.now();if(!was)render()}return}
+  if(e.t==='move'||e.t==='new'){if(typeof e.id!=='string'||e.id.length>40)return;
+    if(e.t==='move'&&!(Number.isInteger(e.c)&&Number.isInteger(e.n)&&(e.by===0||e.by===1)&&typeof e.g==='string'))return;
+    if(e.t==='new'&&!((e.first===0||e.first===1)&&typeof e.gid==='string'))return;
+    if(addEvent(e)){if(e.by!==me&&e.t==='move')haptic();render();const s=state();if(s.winner!==null&&e.t==='move')haptic(s.winner===me?'success':'warning')}}}
+async function loadHistory(){try{const t=await fetch(NTFY+'/json?poll=1&since=all',{cache:'no-store'}).then(r=>r.text());
+  for(const line of t.split('\n'))if(line){try{const m=JSON.parse(line);if(m.event==='message')onMsg(m.message)}catch(x){}}}catch(e){status('Нет связи с игрой — проверь интернет.')}}
+function listen(){const es=new EventSource(NTFY+'/sse');es.onmessage=ev=>{try{const m=JSON.parse(ev.data);if(m.event==='message')onMsg(m.message)}catch(x){}};
+  es.onerror=()=>{status('Переподключаюсь…');setTimeout(()=>status(''),3000)}}
+const ping=()=>{if(me!==null&&!document.hidden)pub({t:'ping',by:me})};
+
+/* уведомление через бота, если соперника нет в игре */
+async function tell(to,text){try{await fetch('https://api.telegram.org/bot'+BOT+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({chat_id:P[to].tg,text,reply_markup:{inline_keyboard:[[{text:'Открыть игру 🎮',web_app:{url:URL_}}]]}})})}catch(e){}}
+const away=i=>Date.now()-lastPing[i]>35000;
+const rid=()=>Math.random().toString(36).slice(2,12)+Date.now().toString(36);
+
+/* действия */
+$('board').onclick=e=>{const col=e.target.closest('[data-c]');if(!col||me===null)return;const c=+col.dataset.c;const s=state();
+  if(!s.g){newGame(me);return}
+  if(s.winner!==null){status('Игра окончена — начни новую');return}
+  if(s.turn!==me){status('Сейчас ход '+P[s.turn].name);haptic('error');setTimeout(()=>status(''),1500);return}
+  if(s.board[c].length>=H){haptic('error');return}
+  const ev={t:'move',id:rid(),g:s.g.gid,n:s.moves,c,by:me,ts:Date.now()};addEvent(ev);haptic();render();pub(ev);
+  const ns=state();const op=1-me;
+  if(ns.winner===me){haptic('success');if(away(op))tell(op,P[me].name+(me===1?' выиграла':' выиграл')+' в «4 в ряд» 🏆 Реванш?')}
+  else if(ns.winner===-1){if(away(op))tell(op,'Ничья в «4 в ряд» 🤝')}
+  else if(away(op))tell(op,'Твой ход в «4 в ряд» 🎯 '+P[me].name+' уже сходил'+(me===1?'а':''))};
+function newGame(first){const ev={t:'new',id:rid(),gid:rid(),first,ts:Date.now()};addEvent(ev);render();pub(ev);
+  const op=1-me;if(away(op))tell(op,P[me].name+(me===1?' зовёт':' зовёт')+' тебя сыграть в «4 в ряд» 🎮')}
+$('newg').onclick=()=>{const s=state();
+  const first=s.g&&s.winner!==null&&s.winner!==-1?1-s.winner:(s.g&&s.winner===null&&s.moves>0?1-me:me);newGame(first)};
+$('poke').onclick=()=>{tell(1-me,P[me].name+' ждёт тебя в «4 в ряд» 🎮');status('Отправил '+P[1-me].name+' приглашение в Telegram');haptic('success');setTimeout(()=>status(''),3000)};
+$('who').onclick=e=>{const b=e.target.closest('[data-me]');if(!b)return;me=+b.dataset.me;LS.set('g-me',me);render();ping()};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){ping();loadHistory()}});
+
+render();loadHistory().then(()=>{render();listen();ping();setInterval(ping,20000);setInterval(()=>render(),15000)});
+}
+</script>
+</body>
+</html>
